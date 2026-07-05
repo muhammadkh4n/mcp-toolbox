@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	driver "github.com/go-sql-driver/mysql"
@@ -72,8 +73,15 @@ func (r Config) Initialize(ctx context.Context, tracer trace.Tracer) (sources.So
 		return nil, fmt.Errorf("unable to create pool: %w", err)
 	}
 
-	err = pool.PingContext(ctx)
-	if err != nil {
+	// When TOOLBOX_LAZY_SOURCES=1, skip the startup connectivity check entirely:
+	// do not open any connection (and thus do not trigger an on-demand SSH tunnel)
+	// until a tool actually runs. The sql.DB pool created above connects lazily on
+	// first query; SetConnMaxIdleTime lets idle connections close afterward so those
+	// tunnels collapse shortly after use. Unset, behavior is identical to upstream
+	// (fail-fast: ping at startup and refuse to start if the database is unreachable).
+	if os.Getenv("TOOLBOX_LAZY_SOURCES") == "1" {
+		pool.SetConnMaxIdleTime(60 * time.Second)
+	} else if err = pool.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("unable to connect successfully: %w", err)
 	}
 
