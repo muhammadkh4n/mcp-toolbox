@@ -1,0 +1,13 @@
+[Unit]
+Description=SSH tunnel connection :PORT -> DB_HOST:DB_PORT
+
+[Service]
+# One independent ssh per accepted connection. Do NOT add ControlMaster/
+# ControlPersist here: under Accept=yes the persisted master is owned by one
+# connection's service instance and systemd's instance cleanup kills it while
+# the next connection multiplexes through it — every second dial then dies
+# mid-handshake ("Connection lost"). See README.md.
+ExecStart=/usr/bin/ssh -T -o ClearAllForwardings=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=15 -i %h/.ssh/SSH_KEY -W DB_HOST:DB_PORT SSH_USER@BASTION_HOST
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal

@@ -1,0 +1,9 @@
+[Unit]
+Description=On-demand SSH tunnel 127.0.0.1:PORT -> DB_HOST:DB_PORT
+
+[Socket]
+ListenStream=127.0.0.1:PORT
+Accept=yes
+
+[Install]
+WantedBy=sockets.target
